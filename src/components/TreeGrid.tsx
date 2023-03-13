@@ -1,4 +1,3 @@
-import { Currencies, Money } from "ts-money";
 import { ObservableObject, batch, ObservableArray } from "@legendapp/state";
 import { enableLegendStateReact, useObservable, For, observer, useComputed } from "@legendapp/state/react";
 import AddNewDialog, { open, close, AddNewState } from "./treegrid/AddNew";
@@ -6,14 +5,15 @@ import { State, TreeGridContext, Node, UINode, BudgetType, NodeType, Graph, Node
 import Row from "./treegrid/Row";
 import { v4 as uuidv4 } from 'uuid';
 import Edit, * as EditForm from "./treegrid/Edit";
+import { lessThan, subtract, add, Money, isPositive } from "@/lib/money";
 
 enableLegendStateReact();
 
-function usd(amount: number) {
-  return new Money(amount, "usd");
+function usd(amount: number): Money {
+  return { amount, currency: DEFAULT_CURRENCY };
 }
 
-export const DEFAULT_CURRENCY = Currencies.USD;
+export const DEFAULT_CURRENCY = "USD";
 /*
 type NodeMap =  { [id:string]: Node };
 */
@@ -33,13 +33,13 @@ function* traverse(nodes: NodeMap, nodeId: string, depth: number, parentId: stri
   if (
     currentNode.budgetType == "fixed" &&
     (currentNode.children.length > 0) &&
-    (currentNode.usedBudget.lessThan(currentNode.budget))) {
+    (lessThan(currentNode.usedBudget, currentNode.budget))) {
     // Insert pseudo-item
     const id = uuidv4();
     yield {
       id,
       name: "Pseudo-intent",
-      budget: currentNode.budget.subtract(currentNode.usedBudget),
+      budget: subtract(currentNode.budget, currentNode.usedBudget),
       type: "pseudo",
       children: [],
       usedBudget: usd(0),
@@ -61,17 +61,17 @@ function recalculate(graph: ObservableObject<Graph>, id: string) {
 
   node.usedBudget.set(node.children.get().reduce((total, child) => {
     const isPseudo = graph.nodes[child].type.get() == "pseudo";
-    return isPseudo ? total : total.add(graph.nodes[child].budget.get());
+    return isPseudo ? total : add(total, graph.nodes[child].budget.get());
   }, usd(0)));
 
   if (node.budgetType.get() == "automatic") {
     node.budget.set(node.usedBudget.get());
   } else { // Fixed budget
-    const excess = node.budget.subtract(node.usedBudget.get());
+    const excess = subtract(node.budget.get(), node.usedBudget.get());
     const pseudoItemId = node.children.find((childId) => graph.nodes[childId].type.get() == "pseudo");
     if (pseudoItemId !== undefined) {
       const pseudoItem = graph.nodes[pseudoItemId];
-      if (!excess.isPositive() || node.children.length == 1) {
+      if (!isPositive(excess) || node.children.length == 1) {
         node.children.filter(child => child.get() != pseudoItemId);
         pseudoItem.delete();
       }
@@ -80,7 +80,7 @@ function recalculate(graph: ObservableObject<Graph>, id: string) {
       }
 
     } else {
-      if (excess.isPositive()) {
+      if (isPositive(excess)) {
         const newPseudoItemId = uuidv4();
         graph.nodes[newPseudoItemId].set({
           id: newPseudoItemId,
@@ -141,24 +141,7 @@ const Debug = observer(function Debug({ state }: { state: ObservableObject<State
   return <div className="col-span-full">{JSON.stringify(state.graph.nodes.get())}</div>
 });
 
-const TreeGrid = observer(function TreeGrid() {
-  const initialNode = {
-    id: "ROOT",
-    name: "Project",
-    agent: "Unknown",
-    depth: 0,
-    children: [],
-    parent: null,
-    budget: usd(0),
-    budgetType: "automatic" as BudgetType,
-    usedBudget: usd(0),
-    type: "intent" as NodeType
-  }
-  const initialNodes: NodeMap = {};
-  initialNodes[initialNode.id] = initialNode;
-  
-  const state = useObservable({ graph: { nodes: initialNodes, edges: { children: {}, parents: {}}} as Graph, addNew: { open: false } as AddNewState, edit: { open: false } as EditForm.EditState});
-
+const TreeGrid = observer(function TreeGrid({ state }: { state: ObservableObject<State> }) {
   const addNew = (parentId: string) => {
     open(state.addNew, parentId);
   }
@@ -182,12 +165,21 @@ const TreeGrid = observer(function TreeGrid() {
      recalculate(state.graph, parentId);
     });
   }
-  
+
+
+
   return (
     <div className="grid gap-x-2 gap-y-1 grid-cols-4 pb-8">
-      <div>Name</div><div>Budget</div><div>Agent</div><div></div>
       <TreeGridContext.Provider value={{ addNew, openEdit, deleteHandler, graph: state.graph }}>
-        <Row item={state.graph.nodes.ROOT} />
+        {(state.graph.rootNode.get() != null) ?
+          <>
+            <div className="font-medium">Name</div><div className="font-medium">Budget</div><div className="font-medium">Assigned to</div><div></div>
+            <Row item={state.graph.nodes[state.graph.rootNode.get() as string]} />
+          </>
+          :
+          <div className="col-span-full">
+            <button>Add</button>
+          </div>}
         <AddNewDialog state={state.addNew} addNewHandler={addNewHandler} />
         <Edit state={state.edit} onSave={editHandler}></Edit>
       </TreeGridContext.Provider>

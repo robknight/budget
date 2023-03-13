@@ -4,10 +4,9 @@ import { ObservableObject } from "@legendapp/state";
 import { Legend } from "@legendapp/state/react-components";
 import { Transition } from "@headlessui/react";
 import { useContext, Fragment } from "react";
-import { TreeGridContext, TreeGridContextType, BudgetType } from "./State";
-import { Money } from "ts-money";
 import { DEFAULT_CURRENCY } from "../TreeGrid";
 import CurrencyInput from 'react-currency-input-field';
+import { getCurrencyInfo } from "@/lib/money";
 
 export const Schema = z.object({
   name: z.string().min(1),
@@ -69,7 +68,7 @@ const ItemForm = observer(({ state }: { state: ObservableObject<ItemFormState> }
         <div className="mb-2">
           <label htmlFor="retained" className="block text-sm font-medium text-gray-700">Budget</label>
           <div className="mt-1 flex rounded-md shadow-sm">
-            <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500">{DEFAULT_CURRENCY.symbol}</span>
+            <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500">{getCurrencyInfo(DEFAULT_CURRENCY).symbol}</span>
             <CurrencyInput
               className="block w-full flex-1 rounded-none rounded-r-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               id="retained"

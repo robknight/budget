@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import { Money } from "ts-money";
+import { Money } from "@/lib/money";
 import { AddNewState } from "./AddNew";
 import { EditState } from "./Edit";
 import { ObservableObject } from "@legendapp/state";
@@ -10,6 +10,7 @@ export type NodeMap = {
 
 export interface Graph {
   nodes: NodeMap;
+  rootNode: string | null;
   edges: {
     children: ChildMap,
     parents: ParentMap,

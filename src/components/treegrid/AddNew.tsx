@@ -2,18 +2,13 @@ import { observer, reactive } from "@legendapp/state/react";
 import { ObservableObject } from "@legendapp/state";
 import { Dialog, Transition } from "@headlessui/react";
 import { TreeGridContext, TreeGridContextType, BudgetType } from "./State";
-import { Money } from "ts-money";
-import { DEFAULT_CURRENCY } from "../TreeGrid";
-import CurrencyInput from 'react-currency-input-field';
-import { Legend } from "@legendapp/state/react-components";
 import { PrimaryButton, SecondaryButton } from "../Button";
-import { z } from "zod";
-import tw from "tailwind-styled-components";
 import { useContext, Fragment } from "react";
 import ItemForm, { ItemFormState, Schema } from "./ItemForm";
+import { Money, fromDecimal } from "@/lib/money";
 
 function moneyFromString(str: string): Money {
-  return Money.fromDecimal(parseFloat(str), "USD");
+  return fromDecimal(parseFloat(str), "USD");
 } 
 
 

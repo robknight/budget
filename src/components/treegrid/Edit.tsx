@@ -5,10 +5,10 @@ import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { UINode, BudgetType } from "./State";
 import { PrimaryButton, SecondaryButton } from "../Button";
-import { Money } from "ts-money";
+import { Money, fromDecimal } from "@/lib/money";
 
 function moneyFromString(str: string): Money {
-  return Money.fromDecimal(parseFloat(str), "USD");
+  return fromDecimal(parseFloat(str), "USD");
 } 
 
 export interface EditState {
