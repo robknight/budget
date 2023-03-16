@@ -11,18 +11,17 @@ function moneyFromString(str: string): Money {
   return fromDecimal(parseFloat(str), "USD");
 } 
 
-
 export interface AddNewState {
   form: ItemFormState;
   open: boolean;
-  parentId: string;
+  parentId: string | null;
 }
 
 export function close(state: ObservableObject<AddNewState>) {
   state.open.set(false);
 }
 
-export function open(state: ObservableObject<AddNewState>, parentId:string) {
+export function open(state: ObservableObject<AddNewState>, parentId: string | null) {
   state.open.set(true);
   state.form.inputs.set({name: "", retained: "", agent: "Unknown", budgetType: "automatic"});
   state.parentId.set(parentId);
@@ -30,12 +29,12 @@ export function open(state: ObservableObject<AddNewState>, parentId:string) {
 
 const AddNewDialog = observer((
   { state, addNewHandler }:
-  { state: ObservableObject<AddNewState>, addNewHandler: (parentId: string, name: string, agent: string, budgetType: BudgetType, budget: Money) => void}) => {
+  { state: ObservableObject<AddNewState>, addNewHandler: (parentId: string | null, name: string, agent: string, budgetType: BudgetType, budget: Money) => void}) => {
   const { graph } = useContext(TreeGridContext) as TreeGridContextType;
   const nodes = graph.nodes;
   
   const parentId = state.parentId.get();
-  const parentNode = nodes[parentId].get();
+  const parentNode = parentId !== null ? nodes[parentId].get() : null;
 
   const handleAddNew = () => {
     // TODO: refactor this into form-based validation
@@ -76,7 +75,10 @@ const AddNewDialog = observer((
           >
             <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all opacity-100 scale-100">
               <Dialog.Title className="font-medium text-lg">Add new budget item</Dialog.Title>
-              <Dialog.Description className="text-sm">New budget item under <span className="italic">{parentNode?.name}</span></Dialog.Description>
+              <Dialog.Description className="text-sm">
+                {parentNode &&
+                <div>New budget item under <span className="italic">{parentNode?.name}</span></div>}
+              </Dialog.Description>
              
              <ItemForm state={state.form} />
 

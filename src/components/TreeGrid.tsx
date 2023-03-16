@@ -105,7 +105,7 @@ function recalculate(graph: ObservableObject<Graph>, id: string) {
   }
 }
 
-export function addNewItem(graph: ObservableObject<Graph>, parentId: string, type: NodeType,
+export function addNewItem(graph: ObservableObject<Graph>, parentId: string | null, type: NodeType,
   name: string, agent: string, budget: Money, budgetType: BudgetType) {
   const id = uuidv4();
   batch(() => {
@@ -119,13 +119,16 @@ export function addNewItem(graph: ObservableObject<Graph>, parentId: string, typ
       budgetType,
       parent: parentId,
       usedBudget: usd(0),
-      depth: graph.nodes[parentId].depth.get() + 1
+      depth: parentId == null ? 0 : graph.nodes[parentId].depth.get() + 1
     });
+    console.log(graph.nodes.get());
     if (parentId) {
       console.log("adding");
       graph.nodes[parentId].children.push(id);
+      recalculate(graph, parentId);
+    } else {
+      graph.rootNode.set(id);
     }
-    recalculate(graph, parentId);
   });
 }
 
@@ -142,7 +145,7 @@ const Debug = observer(function Debug({ state }: { state: ObservableObject<State
 });
 
 const TreeGrid = observer(function TreeGrid({ state }: { state: ObservableObject<State> }) {
-  const addNew = (parentId: string) => {
+  const addNew = (parentId: string | null) => {
     open(state.addNew, parentId);
   }
 
@@ -150,7 +153,7 @@ const TreeGrid = observer(function TreeGrid({ state }: { state: ObservableObject
     EditForm.open(state.edit, item);
   }
  
-  const addNewHandler = function(parentId: string, name: string, agent: string, budgetType: BudgetType, budget: Money) {
+  const addNewHandler = function(parentId: string | null, name: string, agent: string, budgetType: BudgetType, budget: Money) {
      addNewItem(state.graph, parentId, "intent", name, agent, budget, budgetType) 
   }
 
@@ -178,7 +181,7 @@ const TreeGrid = observer(function TreeGrid({ state }: { state: ObservableObject
           </>
           :
           <div className="col-span-full">
-            <button>Add</button>
+            <button onClick={() => addNew(null)}>Add</button>
           </div>}
         <AddNewDialog state={state.addNew} addNewHandler={addNewHandler} />
         <Edit state={state.edit} onSave={editHandler}></Edit>
